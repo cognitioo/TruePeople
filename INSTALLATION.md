@@ -22,7 +22,7 @@ ssh root@YOUR_VPS_IP
 apt update && apt upgrade -y
 
 # Install Python and required packages
-apt install python3 python3-pip git screen -y
+apt install python3 python3-pip screen -y
 
 # Install Firefox dependencies
 apt install -y libgtk-3-0 libdbus-glib-1-2 libxt6 libx11-xcb1
@@ -30,14 +30,25 @@ apt install -y libgtk-3-0 libdbus-glib-1-2 libxt6 libx11-xcb1
 
 ---
 
-## Step 3: Clone and Setup
+## Step 3: Upload Project Files
+
+Upload the project folder to your VPS:
 
 ```bash
-# Clone the repository
-git clone https://github.com/cognitioo/TruePeople.git
-cd TruePeople
+# From your LOCAL PC (not SSH):
+scp -r TruePeople root@YOUR_VPS_IP:/root/
+```
 
-# Install Python packages
+Or use FileZilla/WinSCP to upload to `/root/TruePeople/`
+
+---
+
+## Step 4: Install Python Packages
+
+```bash
+cd /root/TruePeople
+
+# Install dependencies
 pip3 install -r requirements.txt
 
 # Install Playwright Firefox
@@ -47,7 +58,7 @@ playwright install-deps firefox
 
 ---
 
-## Step 4: Configure Proxy
+## Step 5: Configure Proxy
 
 Edit `.env` file with your proxy credentials:
 
@@ -64,23 +75,6 @@ PROXY_PASSWORD=your-password
 ```
 
 Save: `Ctrl+O`, `Enter`, `Ctrl+X`
-
----
-
-## Step 5: Upload Your Leads
-
-Upload `leads.xlsx` to the VPS:
-
-```bash
-# From your LOCAL PC (not SSH):
-scp leads.xlsx root@YOUR_VPS_IP:/root/TruePeople/
-```
-
-**leads.xlsx format:**
-| Column A | Column B (Address) | Column C |
-|----------|-------------------|----------|
-| 1 | 123 Main St, Boston, MA 02101 | N/A |
-| 2 | 456 Oak Ave, Miami, FL 33101 | N/A |
 
 ---
 
@@ -107,7 +101,7 @@ screen -r scraper
 
 In a new SSH window:
 ```bash
-cd TruePeople
+cd /root/TruePeople
 screen -S monitor
 python3 monitor.py
 ```
@@ -144,12 +138,12 @@ screen -r scraper
 python3 main.py
 ```
 
-**Check logs/errors:**
+**Check errors:**
 ```bash
-ls errors/    # Screenshots of errors
+ls errors/
 ```
 
-**Delete progress and restart:**
+**Restart from scratch:**
 ```bash
 rm progress.json
 python3 main.py
@@ -164,12 +158,3 @@ python3 main.py
 | 1,000 | ~1 day |
 | 10,000 | ~10 days |
 | 50,000 | ~35-50 days |
-
----
-
-## Need Help?
-
-Contact your developer for:
-- Proxy credential issues
-- Script errors that persist
-- Changes to TruePeopleSearch.com site
