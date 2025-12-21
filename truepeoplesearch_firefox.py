@@ -36,7 +36,6 @@ PROXY_PASSWORD = os.getenv('PROXY_PASSWORD', '45wb9gsbupfi')
 
 # File paths
 EXCEL_INPUT = 'leads.xlsx'
-EXCEL_OUTPUT = 'output.xlsx'
 ERRORS_DIR = 'errors'
 
 # Scraping settings
@@ -320,55 +319,6 @@ def read_excel_addresses(file_path: str) -> list:
     
     return data
 
-
-def save_results(results: list, output_path: str):
-    """Save scraping results to Excel file (appends to existing)."""
-    with excel_lock:
-        # Check if file exists to append instead of overwrite
-        if Path(output_path).exists():
-            try:
-                wb = openpyxl.load_workbook(output_path)
-                ws = wb.active
-                start_row = ws.max_row + 1
-                print(f"     📂 Appending to existing {output_path} (starting row {start_row})")
-            except Exception as e:
-                print(f"     ⚠️ Could not load existing file, creating new: {e}")
-                wb = openpyxl.Workbook()
-                ws = wb.active
-                ws.title = "Results"
-                start_row = 2
-                # Add headers
-                headers = ['Address', 'Name', 'Age', 'Phone Number', 'Profile URL', 'Status', 'Error']
-                for col, header in enumerate(headers, 1):
-                    ws.cell(row=1, column=col, value=header)
-        else:
-            wb = openpyxl.Workbook()
-            ws = wb.active
-            ws.title = "Results"
-            start_row = 2
-            # Add headers
-            headers = ['Address', 'Name', 'Age', 'Phone Number', 'Profile URL', 'Status', 'Error']
-            for col, header in enumerate(headers, 1):
-                ws.cell(row=1, column=col, value=header)
-        
-        # Add data starting from start_row
-        for i, result in enumerate(results):
-            row_num = start_row + i
-            ws.cell(row=row_num, column=1, value=result.get('address', ''))
-            ws.cell(row=row_num, column=2, value=result.get('name', ''))
-            ws.cell(row=row_num, column=3, value=result.get('age', ''))
-            ws.cell(row=row_num, column=4, value=result.get('phone', ''))
-            ws.cell(row=row_num, column=5, value=result.get('profile_url', ''))
-            ws.cell(row=row_num, column=6, value=result.get('status', ''))
-            ws.cell(row=row_num, column=7, value=result.get('error', ''))
-        
-        # Adjust column widths
-        column_widths = [50, 30, 10, 20, 60, 15, 40]
-        for idx, width in enumerate(column_widths, 1):
-            ws.column_dimensions[openpyxl.utils.get_column_letter(idx)].width = width
-        
-        wb.save(output_path)
-        print(f"\n💾 Results saved to: {output_path} ({len(results)} new entries)")
 
 
 def update_input_excel(file_path: str, row_num: int, phone: str):
@@ -1175,10 +1125,8 @@ def main():
             except Exception as e:
                 print(f"❌ Worker error: {e}")
     
-    # Save final results
+    # Print summary
     if results:
-        save_results(results, EXCEL_OUTPUT)
-        
         print("\n" + "=" * 70)
         print("📊 SUMMARY")
         print("=" * 70)
@@ -1191,6 +1139,7 @@ def main():
         print(f"   ⛔ Blocked: {blocked}")
         print(f"   ℹ️ No data: {partial}")
         print(f"   ❌ Errors: {errors}")
+        print(f"\n   📁 Results saved to: {EXCEL_INPUT} (Column C)")
     
     print(f"\n⏰ Finished at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 70)

@@ -12,10 +12,9 @@ PROXY_PASSWORD=your-password
 ```
 
 ### 2. Add Your Leads
-Place `leads.xlsx` in the project folder with:
-- **Column A**: Any identifier
+Place `leads.xlsx` with:
 - **Column B**: Address (required)
-- **Column C**: "N/A" (will be replaced with phone numbers)
+- **Column C**: "N/A" → will be replaced with phone numbers
 
 ### 3. Build & Run
 ```bash
@@ -23,7 +22,7 @@ docker build -t truepeoplesearch .
 docker run -it --rm -v $(pwd):/app truepeoplesearch
 ```
 
-Done! Phone numbers will be written directly to **Column C** of `leads.xlsx`.
+Done! Phone numbers will be written to **Column C** of `leads.xlsx`.
 
 ---
 
@@ -33,8 +32,6 @@ Done! Phone numbers will be written directly to **Column C** of `leads.xlsx`.
 ```bash
 # Ubuntu/Debian
 sudo apt update && sudo apt install python3 python3-pip -y
-
-# Windows - Download from python.org
 ```
 
 ### 2. Install Dependencies
@@ -44,10 +41,7 @@ playwright install firefox
 playwright install-deps firefox
 ```
 
-### 3. Configure Proxy
-Edit `.env` with your credentials (see Docker section).
-
-### 4. Run
+### 3. Run
 ```bash
 python main.py
 ```
@@ -56,7 +50,6 @@ python main.py
 
 ## Monitoring (Optional)
 ```bash
-# In a separate terminal
 python monitor.py
 ```
 
@@ -68,22 +61,12 @@ python monitor.py
 | `main.py` | Auto-restart wrapper |
 | `truepeoplesearch_firefox.py` | Main scraper |
 | `monitor.py` | Real-time dashboard |
-| `leads.xlsx` | **Input & Output** - Column C gets phone numbers |
-| `output.xlsx` | Detailed log with names, ages, URLs |
+| `leads.xlsx` | Input/Output - Column C gets phone numbers |
 | `.env` | Proxy credentials |
 
 ---
 
-## How Results Are Saved
-
-| File | What Gets Updated |
-|------|-------------------|
-| **`leads.xlsx`** | Column C: N/A → Phone Number |
-| **`output.xlsx`** | Full details: Name, Age, Phone, URL, Status |
-
----
-
-## Proxy Providers (Edit `.env`)
+## Proxy Providers
 
 | Provider | Host | Port | Cost |
 |----------|------|------|------|
