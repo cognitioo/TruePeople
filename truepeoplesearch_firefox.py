@@ -320,6 +320,49 @@ def read_excel_addresses(file_path: str) -> list:
     return data
 
 
+def get_completed_from_xlsx(file_path: str) -> set:
+    """
+    Get completed addresses by checking Column C for phone numbers.
+    An address is complete if Column C has a value that's not 'N/A'.
+    This syncs progress with actual file state - more reliable than progress.json.
+    """
+    completed = set()
+    try:
+        wb = openpyxl.load_workbook(file_path)
+        ws = wb.active
+        
+        # Find address column (usually B)
+        headers = [cell.value for cell in ws[1]]
+        address_col = None
+        for idx, header in enumerate(headers):
+            if header and 'address' in str(header).lower():
+                address_col = idx
+                break
+        
+        if address_col is None:
+            return completed
+        
+        # Check each row - if Column C (index 2) has a phone number, it's complete
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            if not row or len(row) < 3:
+                continue
+            
+            address = row[address_col] if address_col < len(row) else None
+            phone_value = row[2] if len(row) > 2 else None  # Column C
+            
+            if address and phone_value:
+                phone_str = str(phone_value).strip().upper()
+                # If Column C is not empty and not N/A, it's completed
+                if phone_str and phone_str != 'N/A':
+                    completed.add(str(address).strip())
+        
+        wb.close()
+    except Exception as e:
+        print(f"⚠️ Could not read completed from Excel: {e}")
+    
+    return completed
+
+
 
 def update_input_excel(file_path: str, row_num: int, phone: str):
     """Update the input Excel file with extracted phone number (column 3)."""
@@ -1057,10 +1100,19 @@ def main():
     ensure_errors_dir()
     cleanup_old_html_files()  # Clean up old HTML debug files to save disk space
     
-    # Load progress checkpoint
+    # Smart progress loading: check leads.xlsx Column C for actual completions
+    # This syncs progress with actual file state (more reliable than progress.json)
+    print("\n📋 Checking leads.xlsx for completed entries...")
+    completed_from_xlsx = get_completed_from_xlsx(EXCEL_INPUT)
+    print(f"   Found {len(completed_from_xlsx)} already completed in Excel (Column C has phone)")
+    
+    # Also load progress.json for backup (addresses that had errors/no phone)
     progress = load_progress()
-    completed_addresses = set(progress.get('completed', []))
-    print(f"\n📋 Loaded progress: {len(completed_addresses)} already completed")
+    completed_from_json = set(progress.get('completed', []))
+    
+    # Merge both sources - if in either, it's completed
+    completed_addresses = completed_from_xlsx | completed_from_json
+    print(f"📋 Total completed: {len(completed_addresses)}")
     
     try:
         addresses = read_excel_addresses(EXCEL_INPUT)
