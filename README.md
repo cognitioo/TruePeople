@@ -72,7 +72,7 @@ This bot scrapes phone numbers from TruePeopleSearch.com using residential proxi
 - `requirements.txt` - Python dependencies
 
 ### Data Files
-- `Planilha teste.xlsx` - **INPUT**: Addresses to scrape
+- `leads.xlsx` - **INPUT**: Addresses to scrape
 - `output.xlsx` - **OUTPUT**: Scraped results
 - `progress.json` - Resume checkpoint
 
@@ -100,7 +100,7 @@ PROXY_PASSWORD=your-password-here
 ```
 
 ### 3. Prepare Input File
-- Open `Planilha teste.xlsx`
+- Open `leads.xlsx`
 - Column A: Full name (optional)
 - **Column B**: Address (REQUIRED)
   - Format: `Street, City, State ZIP`
@@ -237,7 +237,7 @@ DELAY_MAX = 4.0
 
 ### Technologies
 - **Browser**: Firefox (Playwright)
-- **Proxy**: BrightData Residential
+- **Proxy**:  Residential
 - **Language**: Python 3.11+
 - **Parallel**: ThreadPoolExecutor
 

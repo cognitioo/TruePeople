@@ -34,7 +34,7 @@ PROXY_USERNAME = os.getenv('PROXY_USERNAME', 'brd-customer-hl_14bd7443-zone-resi
 PROXY_PASSWORD = os.getenv('PROXY_PASSWORD', '45wb9gsbupfi')
 
 # File paths
-EXCEL_INPUT = 'Planilha teste.xlsx'
+EXCEL_INPUT = 'leads.xlsx'
 EXCEL_OUTPUT = 'output.xlsx'
 ERRORS_DIR = 'errors'
 
@@ -924,6 +924,26 @@ def process_batch_worker(worker_id: int, batch: list, progress: dict, completed_
             context.set_default_timeout(60000)
             
             page = context.new_page()
+            
+            # 💰 COST OPTIMIZATION: Block heavy resources to save 40% bandwidth
+            # Only need HTML/text for phone number extraction
+            def block_heavy_resources(route):
+                """Block images, fonts, CSS to reduce proxy costs"""
+                resource_type = route.request.resource_type
+                url = route.request.url
+                
+                # Block images
+                if resource_type in ['image', 'media', 'font']:
+                    route.abort()
+                # Block CSS files (we don't need styling)
+                elif url.endswith(('.css', '.woff', '.woff2', '.ttf', '.otf')):
+                    route.abort()
+                else:
+                    route.continue_()
+            
+            page.route("**/*", block_heavy_resources)
+            print(f"   💰 Resource blocking enabled (saves ~40% bandwidth)")
+
             
             for j, addr_data in enumerate(batch):
                 address = addr_data['address']

@@ -7,7 +7,7 @@ View scraper progress in real-time.
 Usage:
     python monitor.py
 
-This reads the stats files and shows live progress.
+This reads leads.xlsx, progress.json, and output.xlsx to show accurate stats.
 """
 
 import json
@@ -19,7 +19,8 @@ from pathlib import Path
 # Files to monitor
 PROGRESS_FILE = 'progress.json'
 STATS_FILE = 'monitoring_stats.json'
-EXCEL_INPUT = 'Planilha teste.xlsx'
+EXCEL_INPUT = 'leads.xlsx'
+EXCEL_OUTPUT = 'output.xlsx'
 
 
 def load_json(file_path):
@@ -28,20 +29,67 @@ def load_json(file_path):
         if Path(file_path).exists():
             with open(file_path, 'r') as f:
                 return json.load(f)
-    except:
-        pass
+    except Exception as e:
+        return {}
     return {}
 
 
 def count_total_addresses():
-    """Count total addresses in Excel"""
+    """Count total addresses in leads.xlsx"""
     try:
         import openpyxl
-        wb = openpyxl.load_workbook(EXCEL_INPUT)
+        if not Path(EXCEL_INPUT).exists():
+            print(f"⚠️ Warning: {EXCEL_INPUT} not found!")
+            return 0
+            
+        wb = openpyxl.load_workbook(EXCEL_INPUT, read_only=True, data_only=True)
         ws = wb.active
-        return ws.max_row - 1  # -1 for header
-    except:
+        
+        # Count non-empty rows in address column (usually column B)
+        count = 0
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            # Check if there's an address (usually in second column)
+            if row and len(row) > 1 and row[1]:  # Column B
+                count += 1
+        
+        wb.close()
+        return count
+    except Exception as e:
+        print(f"⚠️ Error reading {EXCEL_INPUT}: {e}")
         return 0
+
+
+def get_output_stats():
+    """Get stats from output.xlsx"""
+    status_counts = {}
+    phone_count = 0
+    
+    try:
+        import openpyxl
+        if not Path(EXCEL_OUTPUT).exists():
+            return status_counts, phone_count
+            
+        wb = openpyxl.load_workbook(EXCEL_OUTPUT, read_only=True, data_only=True)
+        ws = wb.active
+        
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            if not row:
+                continue
+            
+            # Count phones (usually column D or E)
+            if len(row) > 3 and row[3]:  # Column D (phone)
+                phone_count += 1
+            
+            # Count by status (usually last column)
+            if len(row) > 5:
+                status = row[5] or 'UNKNOWN'
+                status_counts[status] = status_counts.get(status, 0) + 1
+        
+        wb.close()
+    except Exception as e:
+        pass
+    
+    return status_counts, phone_count
 
 
 def clear_screen():
@@ -59,14 +107,17 @@ def print_dashboard():
     
     completed = len(progress.get('completed', []))
     total = count_total_addresses()
+    status_counts, phone_count = get_output_stats()
     
     # Calculate stats
     if total > 0:
         percent = (completed / total) * 100
         remaining = total - completed
+        success_rate = (phone_count / completed * 100) if completed > 0 else 0
     else:
         percent = 0
         remaining = 0
+        success_rate = 0
     
     # Estimate completion
     if completed > 0 and 'started_at' in stats:
@@ -92,13 +143,15 @@ def print_dashboard():
     
     # Progress
     print("📈 PROGRESS:")
-    print(f"   Completed: {completed:,} / {total:,} addresses")
+    print(f"   Total in leads.xlsx: {total:,} addresses")
+    print(f"   Attempted: {completed:,} addresses")
+    print(f"   Phones Found: {phone_count:,} ({success_rate:.1f}% success)")
     print(f"   Remaining: {remaining:,}")
     print(f"   Progress: {percent:.1f}%")
     
     # Progress bar
     bar_width = 50
-    filled = int(bar_width * percent / 100)
+    filled = int(bar_width * percent / 100) if percent > 0 else 0
     bar = '█' * filled + '░' * (bar_width - filled)
     print(f"   [{bar}] {percent:.1f}%")
     print()
@@ -122,21 +175,6 @@ def print_dashboard():
     
     # Status breakdown
     print("📋 STATUS BREAKDOWN:")
-    status_counts = {}
-    
-    # Read output.xlsx for status
-    try:
-        import openpyxl
-        if Path('output.xlsx').exists():
-            wb = openpyxl.load_workbook('output.xlsx')
-            ws = wb.active
-            for row in ws.iter_rows(min_row=2, values_only=True):
-                if len(row) > 5:  # Has status column
-                    status = row[5] or 'PENDING'
-                    status_counts[status] = status_counts.get(status, 0) + 1
-    except:
-        pass
-    
     if status_counts:
         for status, count in sorted(status_counts.items()):
             emoji = {
@@ -147,6 +185,8 @@ def print_dashboard():
                 'ERROR': '❌'
             }.get(status, '📝')
             print(f"   {emoji} {status}: {count}")
+    else:
+        print(f"   No data in {EXCEL_OUTPUT} yet")
     
     print()
     print("=" * 80)
@@ -170,3 +210,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
