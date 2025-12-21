@@ -1087,7 +1087,6 @@ def main():
     print("=" * 70)
     print(f"⏰ Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"📂 Input file: {EXCEL_INPUT}")
-    print(f"📂 Output file: {EXCEL_OUTPUT}")
     print(f"📦 Batch size: {BATCH_SIZE} addresses per session")
     print(f"🚀 Parallel workers: {PARALLEL_WORKERS} browsers")
     print(f"🧪 Test mode: {TEST_MODE} (rows: {TEST_ROWS})")
