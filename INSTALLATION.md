@@ -12,7 +12,10 @@ PROXY_PASSWORD=your-password
 ```
 
 ### 2. Add Your Leads
-Place `leads.xlsx` in the project folder with an "Address" column.
+Place `leads.xlsx` in the project folder with:
+- **Column A**: Any identifier
+- **Column B**: Address (required)
+- **Column C**: "N/A" (will be replaced with phone numbers)
 
 ### 3. Build & Run
 ```bash
@@ -20,7 +23,7 @@ docker build -t truepeoplesearch .
 docker run -it --rm -v $(pwd):/app truepeoplesearch
 ```
 
-Done! Results will be saved to `output.xlsx`.
+Done! Phone numbers will be written directly to **Column C** of `leads.xlsx`.
 
 ---
 
@@ -65,9 +68,18 @@ python monitor.py
 | `main.py` | Auto-restart wrapper |
 | `truepeoplesearch_firefox.py` | Main scraper |
 | `monitor.py` | Real-time dashboard |
-| `leads.xlsx` | Input addresses |
-| `output.xlsx` | Results (auto-created) |
+| `leads.xlsx` | **Input & Output** - Column C gets phone numbers |
+| `output.xlsx` | Detailed log with names, ages, URLs |
 | `.env` | Proxy credentials |
+
+---
+
+## How Results Are Saved
+
+| File | What Gets Updated |
+|------|-------------------|
+| **`leads.xlsx`** | Column C: N/A → Phone Number |
+| **`output.xlsx`** | Full details: Name, Age, Phone, URL, Status |
 
 ---
 

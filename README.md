@@ -16,7 +16,7 @@ python main.py
 
 ## Configuration
 1. Edit `.env` with your proxy credentials
-2. Place `leads.xlsx` with an "Address" column
-3. Run and check `output.xlsx` for results
+2. Place `leads.xlsx` with addresses in Column B
+3. Run - phone numbers are written to Column C of `leads.xlsx`
 
 See [INSTALLATION.md](INSTALLATION.md) for detailed setup.
