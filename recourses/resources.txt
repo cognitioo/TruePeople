@@ -1,0 +1,161 @@
+1. address= <span class="search-type-link">Address</span>
+
+
+2. search-first-part(that one where we have eg- 123 Park Ave)  = <input aria-label="Street Address" autocapitalize="off" autocomplete="off" autocorrect="off" class="input-addr form-control form-control-lg border-right-0 rounded-right-0 typeahead-address" data-val="true" data-val-maxlength="Maximum length allowed is 50 characters." data-val-maxlength-max="50" id="id-d-addr" maxlength="50" name="StreetAddress" placeholder="e.g 123 Park Ave" spellcheck="False" style="width:480px;" type="text" value="">
+   city-state-zip= <input aria-label="City, State or Zip" autocapitalize="off" autocomplete="off" autocorrect="off" class="input-loc form-control typeahead-locations form-control-lg border-left-0 rounded-left-0" id="id-d-loc-addr" maxlength="50" name="CityStateZip" placeholder="City, State or Zip" spellcheck="False" style="width:300px;" type="search" value="">
+   
+camofox-doc= https://camoufox.com/python/installation/ 
+
+
+3. then this is the element of first selector -
+<a class="btn btn-success btn-lg detail-link shadow-form shadow-button" href="/find/person/p62unr44902n004u6r96" aria-label="View All Details">View Details &nbsp;<i class="fa fa-arrow-right"></i></a>
+
+
+3. url=https://www.truepeoplesearch.com/resultemail?email=115%20hayward%20ave,%20brockton,%20ma%2002301
+      (i Gave url because im not able to see the site so i though this might be uesfull but this thing is not a big deal because we can even just get the whole html after the previus important steps)
+
+
+
+geoIp and proxies-
+GeoIP & Proxy Support
+By passing geoip=True, or passing in a target IP address, Camoufox will automatically use the target IP's longitude, latitude, timezone, country, locale, & spoof the WebRTC IP address.
+
+It will also calculate and spoof the browser's language based on the distribution of language speakers in the target region.
+
+See BrowserScan demo
+#Installation
+Install Camoufox with the geoip extra:
+
+
+pip install -U "camoufox[geoip]"
+#Usage
+Pass in geoip=True with Playwright's proxy parameter:
+
+
+with Camoufox(
+    geoip=True,
+    proxy={
+        'server': 'http://example.com:8080',
+        'username': 'username',
+        'password': 'password'
+    }
+) as browser:
+    page = browser.new_page()
+    page.goto("https://www.browserscan.net")
+Previous
+Usage
+Next
+Main World Execution
+© Cop
+
+
+that was the doc page of that turn stile
+
+## Main World Execution
+#Reading the DOM - Isolated World
+By default, all JavaScript execution is ran in an isolated scope, invisible to the page.
+
+This makes it impossible for the page to detect JavaScript reading the DOM:
+
+
+>>> page.goto("https://example.com/")
+>>> page.evaluate("document.querySelector('h1').innerText")
+'Example Domain'
+However, your JavaScript will not be able to modify the DOM:
+
+
+>>> page.evaluate("document.querySelector('h1').remove()")
+# Will not work!
+#Modifying the DOM - Main World
+To be able to modify the DOM, run JavaScript in the main world—the non-isolated scope.
+
+Leak Warning
+All code executed in the main world can be detected by the target website. Only execute JavaScript in the main world if absolutely necessary.
+
+To enable main world execution, set the main_world_eval parameter to True:
+
+
+with Camoufox(main_world_eval=True) as browser:
+    page = browser.new_page()
+    page.goto("https://example.com/")
+1
+2
+3
+Now, you can inject JavaScript in the main world by prefixing the code with mw:
+
+
+>>> page.evaluate("mw:document.querySelector('h1').remove()")
+# h1 is now removed!
+You can also return JSON serializable data from the main world:
+
+
+>>> page.evaluate("mw:{key: 'value'}")
+{'key': 'value'}
+Note
+Returning references to nodes/elements from the main world is not supported, since Playwright's utilities do not run in the main world.
+To retrieve node references, use the isolated world instead.
+
+Previous
+Geo​IP & Proxy Support
+Next
+Remote Server
+
+and another important documentaion url you might have to read of the camoufox 
+https://camoufox.com/fingerprint/ go their im hoping you have readed the whole doc every singel important page 
+
+this is what you are going to see in the page - 
+Fingerprint Injection
+In Camoufox, data is intercepted at the C++ implementation level, making the changes undetectable through JavaScript inspection.
+
+To spoof fingerprint properties, pass a JSON containing properties to spoof to the Python interface:
+
+
+>>> with Camoufox(config={"property": "value"}) as browser:
+Config data not set by the user will be automatically populated using BrowserForge fingerprints, which mimic the statistical distribution of device characteristics in real-world traffic.
+
+#Getting started
+Camoufox accepts the following properties:
+
+Navigator
+navigator/
+Cursor Movement
+cursor-movement/
+Fonts
+fonts/
+Screen
+screen/
+Window
+window/
+Document
+document/
+HTTP Headers
+headers/
+Geolocation & Intl
+geolocation/
+WebRTC IP
+webrtc/
+WebGL
+webgl/
+Media & Audio
+media-audio/
+Voices
+voices/
+Addons
+addons/
+Miscellaneous
+miscellaneous/
+Previous
+Passing Config
+Next
+Navigator
+
+
+
+
+
+
+new selector we will enter things in this one diractly with the main options ok 
+
+first adress block's selector = <input aria-label="Name" autocapitalize="off" autocomplete="off" autocorrect="off" class="input-n form-control typeahead-name form-control-lg border-right-0 rounded-right-0 input-d-half" data-val="true" data-val-maxlength="Maximum length allowed is 50 characters." data-val-maxlength-max="50" id="id-d-n" maxlength="50" name="Name" placeholder="Enter name, phone or address" spellcheck="False" style="width:480px;" type="text" value="">
+
+city-state-zip block's selector = <input aria-label="City, State or Zip" autocapitalize="off" autocomplete="off" autocorrect="off" class="input-loc form-control typeahead-locations form-control-lg border-left-0 rounded-left-0" data-val="true" data-val-maxlength="Maximum length allowed is 50 characters." data-val-maxlength-max="50" id="id-d-loc-name" maxlength="50" name="CityStateZip" placeholder="City, State or Zip" spellcheck="False" style="width:300px;" type="search" value="">
