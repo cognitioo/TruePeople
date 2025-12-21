@@ -7,7 +7,7 @@ View scraper progress in real-time.
 Usage:
     python monitor.py
 
-This reads leads.xlsx, progress.json, and output.xlsx to show accurate stats.
+This reads leads.xlsx and progress.json to show accurate stats.
 """
 
 import json
@@ -20,7 +20,6 @@ from pathlib import Path
 PROGRESS_FILE = 'progress.json'
 STATS_FILE = 'monitoring_stats.json'
 EXCEL_INPUT = 'leads.xlsx'
-EXCEL_OUTPUT = 'output.xlsx'
 
 
 def load_json(file_path):
@@ -59,37 +58,31 @@ def count_total_addresses():
         return 0
 
 
-def get_output_stats():
-    """Get stats from output.xlsx"""
-    status_counts = {}
+def count_phones_found():
+    """Count phone numbers in leads.xlsx Column C (non-N/A values)"""
     phone_count = 0
-    
     try:
         import openpyxl
-        if not Path(EXCEL_OUTPUT).exists():
-            return status_counts, phone_count
+        if not Path(EXCEL_INPUT).exists():
+            return 0
             
-        wb = openpyxl.load_workbook(EXCEL_OUTPUT, read_only=True, data_only=True)
+        wb = openpyxl.load_workbook(EXCEL_INPUT, read_only=True, data_only=True)
         ws = wb.active
         
         for row in ws.iter_rows(min_row=2, values_only=True):
-            if not row:
+            if not row or len(row) < 3:
                 continue
             
-            # Count phones (usually column D or E)
-            if len(row) > 3 and row[3]:  # Column D (phone)
+            # Column C (index 2) - count non-empty, non-N/A values
+            phone = row[2]
+            if phone and str(phone).strip().upper() != 'N/A':
                 phone_count += 1
-            
-            # Count by status (usually last column)
-            if len(row) > 5:
-                status = row[5] or 'UNKNOWN'
-                status_counts[status] = status_counts.get(status, 0) + 1
         
         wb.close()
     except Exception as e:
         pass
     
-    return status_counts, phone_count
+    return phone_count
 
 
 def clear_screen():
@@ -107,7 +100,7 @@ def print_dashboard():
     
     completed = len(progress.get('completed', []))
     total = count_total_addresses()
-    status_counts, phone_count = get_output_stats()
+    phone_count = count_phones_found()
     
     # Calculate stats
     if total > 0:
@@ -173,23 +166,8 @@ def print_dashboard():
             print(f"   Last Crash: {stats['last_crash'][:19]}")
         print()
     
-    # Status breakdown
-    print("📋 STATUS BREAKDOWN:")
-    if status_counts:
-        for status, count in sorted(status_counts.items()):
-            emoji = {
-                'FOUND': '✅',
-                'NO_PHONE': 'ℹ️',
-                'NO_PROFILES': 'ℹ️',
-                'BLOCKED': '⛔',
-                'ERROR': '❌'
-            }.get(status, '📝')
-            print(f"   {emoji} {status}: {count}")
-    else:
-        print(f"   No data in {EXCEL_OUTPUT} yet")
-    
-    print()
     print("=" * 80)
+    print("Results are saved to: leads.xlsx (Column C)")
     print("Press Ctrl+C to exit | Auto-refresh every 10 seconds")
     print("=" * 80)
 
@@ -210,4 +188,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
