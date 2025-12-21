@@ -1,55 +1,13 @@
-# Sensitive files - DO NOT COMMIT
-.env
-*.env
+# Byte-compiled
+__pycache__/
+*.pyc
 
-# Data files
-*.xlsx
+# Output files
 output.xlsx
-Planilha teste.xlsx
+errors/
+monitoring_stats.json
 progress.json
 
-# Errors and logs
-errors/
-*.log
-*.html
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Virtual environments
+# Virtual environment
 venv/
-ENV/
-env/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Test files
-test*.py
+.venv/
