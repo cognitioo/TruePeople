@@ -16,6 +16,7 @@ from datetime import datetime
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
+import gc  # For memory cleanup during long runs
 
 import openpyxl
 from dotenv import load_dotenv
@@ -76,6 +77,28 @@ def ensure_errors_dir():
     Path(ERRORS_DIR).mkdir(exist_ok=True)
 
 
+def cleanup_old_html_files(max_age_hours: int = 24):
+    """Delete HTML debug files older than max_age_hours to save disk space."""
+    try:
+        errors_path = Path(ERRORS_DIR)
+        if not errors_path.exists():
+            return
+        
+        now = time.time()
+        deleted_count = 0
+        
+        for html_file in errors_path.glob("results_*.html"):
+            file_age_hours = (now - html_file.stat().st_mtime) / 3600
+            if file_age_hours > max_age_hours:
+                html_file.unlink()
+                deleted_count += 1
+        
+        if deleted_count > 0:
+            print(f"     🧹 Cleaned up {deleted_count} old HTML files")
+    except Exception as e:
+        pass  # Non-critical, ignore errors
+
+
 def load_progress() -> dict:
     """Load progress from checkpoint file."""
     try:
@@ -99,6 +122,7 @@ def save_progress(progress: dict):
 # Thread lock for thread-safe operations
 progress_lock = threading.Lock()
 excel_lock = threading.Lock()
+results_lock = threading.Lock()  # Lock for results list
 
 
 def is_blocked_url(url: str) -> bool:
@@ -298,33 +322,53 @@ def read_excel_addresses(file_path: str) -> list:
 
 
 def save_results(results: list, output_path: str):
-    """Save scraping results to Excel file."""
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Results"
-    
-    # Headers
-    headers = ['Address', 'Name', 'Age', 'Phone Number', 'Profile URL', 'Status', 'Error']
-    for col, header in enumerate(headers, 1):
-        ws.cell(row=1, column=col, value=header)
-    
-    # Data
-    for row_num, result in enumerate(results, 2):
-        ws.cell(row=row_num, column=1, value=result.get('address', ''))
-        ws.cell(row=row_num, column=2, value=result.get('name', ''))
-        ws.cell(row=row_num, column=3, value=result.get('age', ''))
-        ws.cell(row=row_num, column=4, value=result.get('phone', ''))
-        ws.cell(row=row_num, column=5, value=result.get('profile_url', ''))
-        ws.cell(row=row_num, column=6, value=result.get('status', ''))
-        ws.cell(row=row_num, column=7, value=result.get('error', ''))
-    
-    # Adjust column widths
-    column_widths = [50, 30, 10, 20, 60, 15, 40]
-    for idx, width in enumerate(column_widths, 1):
-        ws.column_dimensions[openpyxl.utils.get_column_letter(idx)].width = width
-    
-    wb.save(output_path)
-    print(f"\n💾 Results saved to: {output_path}")
+    """Save scraping results to Excel file (appends to existing)."""
+    with excel_lock:
+        # Check if file exists to append instead of overwrite
+        if Path(output_path).exists():
+            try:
+                wb = openpyxl.load_workbook(output_path)
+                ws = wb.active
+                start_row = ws.max_row + 1
+                print(f"     📂 Appending to existing {output_path} (starting row {start_row})")
+            except Exception as e:
+                print(f"     ⚠️ Could not load existing file, creating new: {e}")
+                wb = openpyxl.Workbook()
+                ws = wb.active
+                ws.title = "Results"
+                start_row = 2
+                # Add headers
+                headers = ['Address', 'Name', 'Age', 'Phone Number', 'Profile URL', 'Status', 'Error']
+                for col, header in enumerate(headers, 1):
+                    ws.cell(row=1, column=col, value=header)
+        else:
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Results"
+            start_row = 2
+            # Add headers
+            headers = ['Address', 'Name', 'Age', 'Phone Number', 'Profile URL', 'Status', 'Error']
+            for col, header in enumerate(headers, 1):
+                ws.cell(row=1, column=col, value=header)
+        
+        # Add data starting from start_row
+        for i, result in enumerate(results):
+            row_num = start_row + i
+            ws.cell(row=row_num, column=1, value=result.get('address', ''))
+            ws.cell(row=row_num, column=2, value=result.get('name', ''))
+            ws.cell(row=row_num, column=3, value=result.get('age', ''))
+            ws.cell(row=row_num, column=4, value=result.get('phone', ''))
+            ws.cell(row=row_num, column=5, value=result.get('profile_url', ''))
+            ws.cell(row=row_num, column=6, value=result.get('status', ''))
+            ws.cell(row=row_num, column=7, value=result.get('error', ''))
+        
+        # Adjust column widths
+        column_widths = [50, 30, 10, 20, 60, 15, 40]
+        for idx, width in enumerate(column_widths, 1):
+            ws.column_dimensions[openpyxl.utils.get_column_letter(idx)].width = width
+        
+        wb.save(output_path)
+        print(f"\n💾 Results saved to: {output_path} ({len(results)} new entries)")
 
 
 def update_input_excel(file_path: str, row_num: int, phone: str):
@@ -953,6 +997,10 @@ def process_batch_worker(worker_id: int, batch: list, progress: dict, completed_
                 
                 result = scrape_address(page, address, row_num=row_num, is_first_in_batch=(j == 0))
                 
+                # Track if we should skip the default append (for BLOCKED cases that already appended)
+                skip_append = False
+                should_break = False
+                
                 if result['status'] == 'FOUND':
                     print(f"   [W{worker_id}] ✅ SUCCESS: {result['phone']}")
                     with progress_lock:
@@ -971,22 +1019,20 @@ def process_batch_worker(worker_id: int, batch: list, progress: dict, completed_
                         random_delay(5, 8)
                         if wait_for_cloudflare(page):
                             print(f"   [W{worker_id}] ✅ Recovered! Continuing batch...")
-                            # Don't break - continue with next address
+                            # Recovery successful - still append the BLOCKED result but continue
                         else:
                             print(f"   [W{worker_id}] ❌ Still blocked, ending batch")
-                            results.append(result)
-                            break
+                            should_break = True
                     except Exception as e:
                         print(f"   [W{worker_id}] ❌ Recovery failed: {str(e)[:20]}, ending batch")
-                        results.append(result)
-                        break
+                        should_break = True
                 elif result['status'] in ['NO_PROFILES', 'NO_PHONE']:
                     print(f"   [W{worker_id}] ℹ️ {result['status']}")
                     with progress_lock:
                         completed_addresses.add(address)
                         progress['completed'] = list(completed_addresses)
                         save_progress(progress)
-                else:
+                else:  # ERROR status
                     print(f"   [W{worker_id}] ⚠️ Error: {result.get('error', 'Unknown')[:30]}")
                     # Navigate to homepage to recover (safer than reload)
                     print(f"   [W{worker_id}] 🔄 Navigating to homepage to recover...")
@@ -1000,16 +1046,34 @@ def process_batch_worker(worker_id: int, batch: list, progress: dict, completed_
                             page.url  # This will fail if page is closed
                         except:
                             print(f"   [W{worker_id}] ❌ Page closed, ending this batch")
-                            break  # Exit the loop, browser is dead
+                            should_break = True
                 
-                results.append(result)
+                # Always append result (once!) unless we already did in a break case
+                with results_lock:
+                    results.append(result)
+                
+                # Break after appending if needed
+                if should_break:
+                    break
                 
                 # Delay between addresses (INCREASED for stability)
                 if j < len(batch) - 1:
                     random_delay(5, 8)  # Increased from 3-5
+                
+                # Memory cleanup every 10 addresses (prevents memory growth)
+                if (j + 1) % 10 == 0:
+                    gc.collect()
+                    print(f"   [W{worker_id}] 🧹 Memory cleanup (address #{j+1})")
             
-            page.close()
-            context.close()
+            # Cleanup page and context (moved inside try for proper cleanup)
+            try:
+                page.close()
+            except:
+                pass
+            try:
+                context.close()
+            except:
+                pass
             
         except Exception as e:
             print(f"   [W{worker_id}] ❌ Browser error: {e}")
@@ -1041,6 +1105,7 @@ def main():
         return
     
     ensure_errors_dir()
+    cleanup_old_html_files()  # Clean up old HTML debug files to save disk space
     
     # Load progress checkpoint
     progress = load_progress()
