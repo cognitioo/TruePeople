@@ -1,75 +1,175 @@
-# TruePeopleSearch Scraper - Installation Guide
+# TruePeopleSearch Scraper - VPS Deployment Guide
 
-## Quick Start (Docker - Recommended)
-
-### 1. Configure Proxy
-Edit `.env` file with your proxy credentials:
-```bash
-PROXY_HOST=your-proxy-host.com
-PROXY_PORT=33335
-PROXY_USERNAME=your-username
-PROXY_PASSWORD=your-password
-```
-
-### 2. Add Your Leads
-Place `leads.xlsx` with:
-- **Column B**: Address (required)
-- **Column C**: "N/A" → will be replaced with phone numbers
-
-### 3. Build & Run
-```bash
-docker build -t truepeoplesearch .
-docker run -it --rm -v $(pwd):/app truepeoplesearch
-```
-
-Done! Phone numbers will be written to **Column C** of `leads.xlsx`.
+## Requirements
+- Hostinger VPS (or any Ubuntu 20.04+ server)
+- SSH access
+- 4GB RAM minimum
 
 ---
 
-## Manual Installation (VPS/Local)
+## Step 1: SSH Into Your VPS
 
-### 1. Install Python 3.10+
 ```bash
-# Ubuntu/Debian
-sudo apt update && sudo apt install python3 python3-pip -y
+ssh root@YOUR_VPS_IP
 ```
 
-### 2. Install Dependencies
+---
+
+## Step 2: Install Dependencies
+
 ```bash
-pip install -r requirements.txt
+# Update system
+apt update && apt upgrade -y
+
+# Install Python and required packages
+apt install python3 python3-pip git screen -y
+
+# Install Firefox dependencies
+apt install -y libgtk-3-0 libdbus-glib-1-2 libxt6 libx11-xcb1
+```
+
+---
+
+## Step 3: Clone and Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/cognitioo/TruePeople.git
+cd TruePeople
+
+# Install Python packages
+pip3 install -r requirements.txt
+
+# Install Playwright Firefox
 playwright install firefox
 playwright install-deps firefox
 ```
 
-### 3. Run
+---
+
+## Step 4: Configure Proxy
+
+Edit `.env` file with your proxy credentials:
+
 ```bash
-python main.py
+nano .env
+```
+
+Replace with your actual credentials:
+```
+PROXY_HOST=residential.evomi.com
+PROXY_PORT=3128
+PROXY_USERNAME=your-username
+PROXY_PASSWORD=your-password
+```
+
+Save: `Ctrl+O`, `Enter`, `Ctrl+X`
+
+---
+
+## Step 5: Upload Your Leads
+
+Upload `leads.xlsx` to the VPS:
+
+```bash
+# From your LOCAL PC (not SSH):
+scp leads.xlsx root@YOUR_VPS_IP:/root/TruePeople/
+```
+
+**leads.xlsx format:**
+| Column A | Column B (Address) | Column C |
+|----------|-------------------|----------|
+| 1 | 123 Main St, Boston, MA 02101 | N/A |
+| 2 | 456 Oak Ave, Miami, FL 33101 | N/A |
+
+---
+
+## Step 6: Run the Scraper
+
+```bash
+# Start a screen session (keeps running after disconnect)
+screen -S scraper
+
+# Run the scraper
+python3 main.py
+```
+
+**Detach from screen:** Press `Ctrl+A`, then `D`
+
+**Reconnect later:** 
+```bash
+screen -r scraper
 ```
 
 ---
 
-## Monitoring (Optional)
+## Step 7: Monitor Progress (Optional)
+
+In a new SSH window:
 ```bash
-python monitor.py
+cd TruePeople
+screen -S monitor
+python3 monitor.py
 ```
 
 ---
 
-## Files
-| File | Purpose |
-|------|---------|
-| `main.py` | Auto-restart wrapper |
-| `truepeoplesearch_firefox.py` | Main scraper |
-| `monitor.py` | Real-time dashboard |
-| `leads.xlsx` | Input/Output - Column C gets phone numbers |
-| `.env` | Proxy credentials |
+## Checking Results
+
+Results are saved to `leads.xlsx` Column C:
+
+```bash
+# Download updated file to your PC:
+scp root@YOUR_VPS_IP:/root/TruePeople/leads.xlsx ./
+```
 
 ---
 
-## Proxy Providers
+## Common Commands
 
-| Provider | Host | Port | Cost |
-|----------|------|------|------|
-| **Evomi** | residential.evomi.com | 3128 | $0.49/GB |
-| **BrightData** | brd.superproxy.io | 33335 | $15/GB |
-| **Oxylabs** | pr.oxylabs.io | 7777 | $8/GB |
+| Command | Purpose |
+|---------|---------|
+| `screen -r scraper` | Reconnect to scraper |
+| `screen -r monitor` | Reconnect to monitor |
+| `Ctrl+C` | Stop the script |
+| `python3 main.py` | Restart scraper |
+
+---
+
+## Troubleshooting
+
+**Script stopped?**
+```bash
+screen -r scraper
+python3 main.py
+```
+
+**Check logs/errors:**
+```bash
+ls errors/    # Screenshots of errors
+```
+
+**Delete progress and restart:**
+```bash
+rm progress.json
+python3 main.py
+```
+
+---
+
+## Expected Timeline
+
+| Leads | Time (2 workers) |
+|-------|------------------|
+| 1,000 | ~1 day |
+| 10,000 | ~10 days |
+| 50,000 | ~35-50 days |
+
+---
+
+## Need Help?
+
+Contact your developer for:
+- Proxy credential issues
+- Script errors that persist
+- Changes to TruePeopleSearch.com site
