@@ -168,34 +168,30 @@ def random_scroll(page):
 
 
 def random_mouse_movement(page):
-    """Simulate natural mouse movements with scrolling."""
+    """Simulate natural mouse movements with minimal scrolling."""
     try:
-        for _ in range(random.randint(3, 6)):
+        # REDUCED iterations from 3-6 to 2-3
+        for _ in range(random.randint(2, 3)):
             x = random.randint(100, 1200)
             y = random.randint(100, 700)
             smooth_mouse_move(page, x, y)
-            time.sleep(random.uniform(0.1, 0.3))
-            
-            # Sometimes hover/pause (like reading)
-            if random.random() < 0.3:
-                time.sleep(random.uniform(0.3, 1.0))
+            time.sleep(random.uniform(0.05, 0.15))  # Reduced from 0.1-0.3
         
-        # Occasional scroll
-        if random.random() < 0.4:
-            random_scroll(page)
+        # REMOVED hover/pause - was slowing things down
+        
+        # Removed scroll from here - only scroll when explicitly called
     except:
         pass
 
 
 def warm_up_page(page):
-    """Spend time on page naturally before taking actions - builds trust."""
+    """Spend time on page naturally before taking actions - REDUCED for speed."""
     print("  🔥 Warming up page...")
     try:
-        # Scroll around to simulate reading
-        for _ in range(random.randint(2, 3)):
-            random_mouse_movement(page)
-            random_scroll(page)
-            time.sleep(random.uniform(0.5, 1.0))
+        # Quick scroll to simulate reading (REDUCED from 2-3 to 1 iteration)
+        random_mouse_movement(page)
+        random_scroll(page)
+        time.sleep(random.uniform(0.3, 0.6))  # Reduced from 0.5-1.0
         
         print("     Done warming up")
     except:
@@ -451,9 +447,10 @@ def scrape_address(page, address: str, row_num: int = 0, is_first_in_batch: bool
         
         # Step 2.5: Warm up the page (skip for first address, do for subsequent)
         if not is_first_in_batch:
-            # Not first address - need to warm up to look human
-            warm_up_page(page)
-            random_delay(2, 4)  # Simulate browsing before next search
+            # Subsequent addresses - SKIP warm-up, just a brief pause
+            # (Warm-up was causing hangs and is unnecessary after first address)
+            print("     ⏸️ Brief pause...")
+            random_delay(1, 2)
         else:
             # First address - fresh session, wait for page to be fully ready
             print("     ⏳ Waiting for page to fully load...")
@@ -561,7 +558,7 @@ def scrape_address(page, address: str, row_num: int = 0, is_first_in_batch: bool
         except Exception as e:
             print(f"     ⚠️ City input error: {str(e)[:30]}")
         
-        random_delay(1, 2)
+        random_delay(2, 3)  # CRITICAL: Wait for typing to complete before submitting
         random_mouse_movement(page)
         
         # Step 6: Submit search
